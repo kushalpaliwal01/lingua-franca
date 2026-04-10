@@ -47,6 +47,12 @@ public class SSTGenerator {
       return;
     }
 
+    for (FederateInstance federate : federates) {
+      copySSTSource(context, federate.name);
+    }
+
+    copySSTSource(context, "rti");
+
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
@@ -279,6 +285,40 @@ public class SSTGenerator {
       writer.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private static void copySSTSource(LFGeneratorContext context, String name) {
+    var destDirBase = context.getFileConfig().getSrcGenPath().resolve(name).resolve("sst-src");
+    var srcDirBase = Path.of(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath()).resolve("entity/c");
+
+    try {
+      // Copy the files in the src folder
+      var destDir = destDirBase.resolve("src");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      var srcDir = srcDirBase.resolve("src");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // Copy the test files
+      destDir = destDirBase.resolve("tests");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("tests");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // copy cmake
+      destDir = destDirBase.resolve("cmake");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("cmake");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      //copy CMakeLists.txt
+      FileUtil.copyFile(
+        srcDirBase.resolve("CMakeLists.txt"),
+        destDirBase.resolve("CMakeLists.txt")
+      );
+    }
+    catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying sst files: " + e.getMessage());
     }
   }
 
